@@ -1,0 +1,33 @@
+# Dart / Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.iml
+
+# Generated — run: flutter pub run build_runner build --delete-conflicting-outputs
+# *.g.dart  <- intentionally NOT gitignored; commit generated files
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.podspec
+
+# Android
+android/.gradle
+android/local.properties
+android/key.properties
+
+# macOS
+macos/Pods/
+macos/.symlinks/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
