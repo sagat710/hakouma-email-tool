@@ -22,6 +22,7 @@ class SmtpEmailClient {
     List<File> attachments = const [],
     String signatureHtml = '',
   }) async {
+    final clientDomain = account.email.split('@').last;
     final msg = em.MessageBuilder()
       ..subject = subject
       ..from = [em.MailAddress(account.displayName, account.email)]
@@ -29,19 +30,13 @@ class SmtpEmailClient {
       ..cc = cc.map((a) => em.MailAddress(a.name ?? '', a.address)).toList()
       ..bcc = bcc.map((a) => em.MailAddress(a.name ?? '', a.address)).toList();
 
-    if (replyTo != null) {
-      msg
-        ..inReplyTo = replyTo.messageId
-        ..references = [replyTo.messageId ?? ''];
-    }
-
     final fullHtml = bodyHtml.isNotEmpty
         ? '$bodyHtml${signatureHtml.isNotEmpty ? '<br><br>$signatureHtml' : ''}'
         : '';
 
     if (fullHtml.isNotEmpty) {
-      msg.addTextHtml(fullHtml);
       msg.addTextPlain(bodyText);
+      msg.addTextHtml(fullHtml);
     } else {
       msg.addTextPlain(bodyText);
     }
@@ -55,7 +50,13 @@ class SmtpEmailClient {
 
     final mimeMsg = msg.buildMimeMessage();
 
-    final client = em.SmtpClient(account.smtpHost, isLogEnabled: false);
+    // Set reply threading headers directly on the built MIME message
+    if (replyTo?.messageId != null) {
+      mimeMsg.addHeader('In-Reply-To', replyTo!.messageId!);
+      mimeMsg.addHeader('References', replyTo.messageId!);
+    }
+
+    final client = em.SmtpClient(clientDomain, isLogEnabled: false);
     try {
       await client.connectToServer(
         account.smtpHost,
@@ -66,8 +67,7 @@ class SmtpEmailClient {
         await client.startTls();
       }
       await client.ehlo();
-      await client.authenticate(
-          account.email, password, em.AuthMechanism.plain);
+      await client.authenticate(account.email, password);
       final sendResult = await client.sendMessage(mimeMsg);
       if (!sendResult.isOkStatus) {
         throw Exception('SMTP send failed: ${sendResult.message}');

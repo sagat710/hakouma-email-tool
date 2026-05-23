@@ -43,8 +43,7 @@ class ImapClient {
   // ---------------------------------------------------------------------------
 
   Future<List<em.Mailbox>> listFolders() async {
-    final result = await _client!.listMailboxes();
-    return result.isOkStatus ? result.result ?? [] : [];
+    return _client!.listMailboxes();
   }
 
   // ---------------------------------------------------------------------------
@@ -56,23 +55,19 @@ class ImapClient {
     int pageSize = 50,
     int page = 0,
   }) async {
-    final selectResult = await _client!.selectMailboxByPath(folder);
-    if (!selectResult.isOkStatus) return [];
-
-    final mailbox = selectResult.result!;
+    final mailbox = await _client!.selectMailboxByPath(folder);
     final total = mailbox.messagesExists;
     if (total == 0) return [];
 
     final from = (total - (page + 1) * pageSize).clamp(1, total);
-
     final sequence = em.MessageSequence.fromRangeToLast(from);
-    final fetchResult = await _client!.fetchMessageSequence(
-      sequence,
-      criteria: em.FetchPreference.envelope,
-    );
-    if (!fetchResult.isOkStatus) return [];
 
-    return (fetchResult.result ?? [])
+    final fetchResult = await _client!.fetchMessages(
+      sequence,
+      '(UID FLAGS ENVELOPE INTERNALDATE)',
+    );
+
+    return fetchResult.messages
         .map((msg) => _toEmailMessage(msg, folder))
         .whereType<EmailMessage>()
         .toList()
@@ -83,47 +78,44 @@ class ImapClient {
   Future<EmailMessage?> fetchFullMessage(String uid, String folder) async {
     await _client!.selectMailboxByPath(folder);
     final seq = em.MessageSequence.fromId(int.parse(uid), isUid: true);
-    final result = await _client!.fetchMessageSequence(
-      seq,
-      criteria: em.FetchPreference.full,
-      isUidSequence: true,
-    );
-    if (!result.isOkStatus || result.result!.isEmpty) return null;
-    return _toEmailMessage(result.result!.first, folder, full: true);
+    final result = await _client!.uidFetchMessages(seq, 'BODY.PEEK[]');
+    if (result.messages.isEmpty) return null;
+    return _toEmailMessage(result.messages.first, folder, full: true);
   }
 
   // ---------------------------------------------------------------------------
-  // Flags
+  // Flags (UID-based)
   // ---------------------------------------------------------------------------
 
   Future<void> setRead(String uid, {required bool read}) async {
     final seq = em.MessageSequence.fromId(int.parse(uid), isUid: true);
     if (read) {
-      await _client!.markSeen(seq, isUidSequence: true);
+      await _client!.uidMarkSeen(seq);
     } else {
-      await _client!.markUnseen(seq, isUidSequence: true);
+      await _client!.uidMarkUnseen(seq);
     }
   }
 
   Future<void> setFlagged(String uid, {required bool flagged}) async {
     final seq = em.MessageSequence.fromId(int.parse(uid), isUid: true);
     if (flagged) {
-      await _client!.markFlagged(seq, isUidSequence: true);
+      await _client!.uidMarkFlagged(seq);
     } else {
-      await _client!.markUnflagged(seq, isUidSequence: true);
+      await _client!.uidMarkUnflagged(seq);
     }
   }
 
   Future<void> moveToFolder(String uid, String targetFolder) async {
-    // Resolve the target Mailbox object (uidMove requires Mailbox, not String)
-    final listResult = await _client!.listMailboxes();
-    if (!listResult.isOkStatus) return;
-    final target = (listResult.result ?? [])
+    final seq = em.MessageSequence.fromId(int.parse(uid), isUid: true);
+    final mailboxes = await _client!.listMailboxes();
+    final target = mailboxes
         .where((m) => m.path == targetFolder || m.name == targetFolder)
         .firstOrNull;
-    if (target == null) return;
-    final seq = em.MessageSequence.fromId(int.parse(uid), isUid: true);
-    await _client!.uidMove(seq, target);
+    if (target != null) {
+      await _client!.uidMove(seq, targetMailbox: target);
+    } else {
+      await _client!.uidMove(seq, targetMailboxPath: targetFolder);
+    }
   }
 
   Future<void> deleteMessage(String uid) async {
@@ -141,7 +133,6 @@ class ImapClient {
         onNewMail();
       }
     });
-    // idleStart is fire-and-forget; server sends EXISTS when new mail arrives
     unawaited(_client!.idleStart());
   }
 
