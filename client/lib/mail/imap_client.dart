@@ -142,7 +142,7 @@ class ImapClient {
       }
     });
     // idleStart is fire-and-forget; server sends EXISTS when new mail arrives
-    _client!.idleStart();
+    unawaited(_client!.idleStart());
   }
 
   Future<void> stopIdle() async {
