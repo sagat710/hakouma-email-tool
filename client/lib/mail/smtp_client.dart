@@ -22,8 +22,6 @@ class SmtpEmailClient {
     List<File> attachments = const [],
     String signatureHtml = '',
   }) async {
-    final builder = em.MessageBuilder.prepareReplyToMessage;
-
     final msg = em.MessageBuilder()
       ..subject = subject
       ..from = [em.MailAddress(account.displayName, account.email)]
@@ -49,7 +47,10 @@ class SmtpEmailClient {
     }
 
     for (final file in attachments) {
-      await msg.addFile(file);
+      final bytes = await file.readAsBytes();
+      final filename = file.path.split('/').last;
+      final mediaType = em.MediaType.guessFromFileName(filename);
+      msg.addBinary(bytes, mediaType, filename: filename);
     }
 
     final mimeMsg = msg.buildMimeMessage();
@@ -65,14 +66,14 @@ class SmtpEmailClient {
         await client.startTls();
       }
       await client.ehlo();
-      await client.authenticate(account.email, password,
-          em.AuthMechanism.plain);
+      await client.authenticate(
+          account.email, password, em.AuthMechanism.plain);
       final sendResult = await client.sendMessage(mimeMsg);
       if (!sendResult.isOkStatus) {
         throw Exception('SMTP send failed: ${sendResult.message}');
       }
     } finally {
-      client.disconnect();
+      await client.disconnect();
     }
   }
 }
