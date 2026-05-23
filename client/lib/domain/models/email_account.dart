@@ -1,9 +1,4 @@
-import 'package:drift/drift.dart';
-import 'package:enough_mail/enough_mail.dart' as em;
-
 enum MailProtocol { imap, pop3 }
-
-enum SpamStatus { clean, spam, ambiguous }
 
 class EmailAccount {
   final String id;

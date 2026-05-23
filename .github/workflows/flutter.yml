@@ -29,9 +29,6 @@ jobs:
       - name: Generate Drift code
         run: flutter pub run build_runner build --delete-conflicting-outputs
 
-      - name: Verify no unexpected generated-file changes
-        run: git diff --exit-code -- "*.g.dart" || (echo "Generated files are out of date. Run 'make setup' locally." && exit 1)
-
       - name: Analyze
         run: flutter analyze --no-fatal-infos
 

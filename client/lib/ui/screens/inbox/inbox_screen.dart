@@ -6,7 +6,6 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:timeago/timeago.dart' as timeago;
 
 import '../../../domain/models/email_account.dart';
 import '../../../domain/models/email_message.dart';

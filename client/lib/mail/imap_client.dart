@@ -64,7 +64,6 @@ class ImapClient {
     if (total == 0) return [];
 
     final from = (total - (page + 1) * pageSize).clamp(1, total);
-    final to = (total - page * pageSize).clamp(1, total);
 
     final sequence = em.MessageSequence.fromRangeToLast(from);
     final fetchResult = await _client!.fetchMessageSequence(
@@ -86,7 +85,7 @@ class ImapClient {
     final seq = em.MessageSequence.fromId(int.parse(uid), isUid: true);
     final result = await _client!.fetchMessageSequence(
       seq,
-      criteria: em.FetchPreference.fullWhenWithoutAttachments,
+      criteria: em.FetchPreference.full,
       isUidSequence: true,
     );
     if (!result.isOkStatus || result.result!.isEmpty) return null;
@@ -116,8 +115,15 @@ class ImapClient {
   }
 
   Future<void> moveToFolder(String uid, String targetFolder) async {
+    // Resolve the target Mailbox object (uidMove requires Mailbox, not String)
+    final listResult = await _client!.listMailboxes();
+    if (!listResult.isOkStatus) return;
+    final target = (listResult.result ?? [])
+        .where((m) => m.path == targetFolder || m.name == targetFolder)
+        .firstOrNull;
+    if (target == null) return;
     final seq = em.MessageSequence.fromId(int.parse(uid), isUid: true);
-    await _client!.uidMove(seq, targetFolder);
+    await _client!.uidMove(seq, target);
   }
 
   Future<void> deleteMessage(String uid) async {
@@ -129,11 +135,13 @@ class ImapClient {
   // ---------------------------------------------------------------------------
 
   void startIdle(void Function() onNewMail) {
-    _client!.eventBus.on<em.ImapEvent>().listen((event) {
+    _idleSubscription =
+        _client!.eventBus.on<em.ImapEvent>().listen((event) {
       if (event is em.ImapMessagesExistEvent) {
         onNewMail();
       }
     });
+    // idleStart is fire-and-forget; server sends EXISTS when new mail arrives
     _client!.idleStart();
   }
 
