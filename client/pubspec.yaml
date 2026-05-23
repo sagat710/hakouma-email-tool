@@ -26,16 +26,11 @@ dependencies:
   # Secure credential storage
   flutter_secure_storage: ^9.0.0
 
-  # HTML email rendering (Dart 3 compatible)
-  flutter_widget_from_html: ^0.14.11
-
-  # Firebase push notifications
-  firebase_core: ^2.24.2
-  firebase_messaging: ^14.7.13
-  flutter_local_notifications: ^16.1.0
+  # HTML email rendering
+  flutter_widget_from_html_core: ^0.10.3
 
   # UI widgets
-  intl: ^0.18.1
+  intl: '>=0.17.0 <1.0.0'
   shimmer: ^3.0.0
   file_picker: ^6.1.1
   flutter_slidable: ^3.0.0
