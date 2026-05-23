@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_html/flutter_html.dart';
+import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -228,7 +228,7 @@ class _BodyView extends StatelessWidget {
 
     if (msg.hasHtml) {
       return SingleChildScrollView(
-        child: Html(data: msg.bodyHtml),
+        child: HtmlWidget(msg.bodyHtml),
       );
     }
 
