@@ -107,8 +107,38 @@ def generate_reply(body_text):
     except Exception as e:
         return f"テンプレート処理エラー: {e}"
 
+# --- Authentication ---
+def check_password():
+    """合言葉（パスワード）が正しいときだけ True を返す。
+    パスワードは st.secrets["app_password"] から読む（コードには書かない）。"""
+    if "app_password" not in st.secrets:
+        st.error(
+            "パスワードが未設定です。Streamlit Cloud の "
+            "Settings → Secrets で `app_password` を設定してください。"
+        )
+        st.stop()
+
+    def password_entered():
+        if st.session_state.get("password", "") == st.secrets["app_password"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # 入力値はメモリに残さない
+        else:
+            st.session_state["password_correct"] = False
+
+    if st.session_state.get("password_correct", False):
+        return True
+
+    st.text_input("パスワード", type="password", on_change=password_entered, key="password")
+    if st.session_state.get("password_correct") is False:
+        st.error("😕 パスワードが違います")
+    return False
+
+
 # --- UI ---
 st.set_page_config(page_title="ハコウマスタジオ 返信生成ツール", layout="centered")
+
+if not check_password():
+    st.stop()
 
 st.title("ハコウマスタジオ 返信生成ツール")
 
