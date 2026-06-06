@@ -1,0 +1,7 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    # Treat unawaited futures as info, not warnings, since we use
+    # fire-and-forget patterns (IMAP IDLE, SharedPreferences in initState).
+    unawaited_futures: info
