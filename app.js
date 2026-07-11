@@ -9,6 +9,37 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentTemplate = null;
     let details = {};
 
+    // 拠点（大阪／東京）ごとに自動で切り替わる文面
+    const LOCATIONS = {
+        '大阪': {
+            arrival: '当日は、ご利用開始時刻の【10分前】にスペースの隣にある「BALUE株式会社」までお越しください。\nスタッフにより施設の開錠、スタジオのご利用案内をさせていただきます。',
+            address: '大阪府大阪市北区浪花町1-19 新興ビル5F',
+            entry: '■■休日のビルへの入館について■■\n土日祝は、テナントオーナーの関係上、入り口シャッターが閉まっている可能性があります。\n入館方法をご案内しますので、到着されましたら\n事務所：06-6940-6761\n担当者：090-2069-7234（原田）\nまでお電話くださいませ。',
+            notes: '（中略：事前セッティング・注意事項など）',
+            contact: 'メール：contact@hakouma.jp\n電話：06-6940-6761（運営会社：BALUE株式会社／営業時間：平日 9:30〜18:30）'
+        },
+        '東京': {
+            arrival: '当日は、ご利用開始時刻の【10分前】に会場ビル5階のスタジオ前までお越しください。\nスタッフにより施設の開錠、スタジオのご利用案内をさせていただきます。',
+            address: '〒101-0021 東京都千代田区外神田1-1-13 千代田区万世橋出張所・区民館 5階 CTIB503\n\nJR秋葉原駅より徒歩3分\n銀座線神田駅より徒歩約6分\n新宿線小川町駅より徒歩約7分',
+            entry: '■■ビルへの入館について■■\n施設は千代田区万世橋出張所・区民館の5階にあります。\n入館方法やビルの開錠状況についてご不明な点がございましたら、到着されましたら下記までお電話くださいませ。\n\n事務所：03-6441-2045(日本スポーツツーリズム推進機構・ジャスタ)',
+            notes: '■■ご利用前のご確認・注意事項■■\n① 機材等の搬入もご利用時間内（10分前より入室可能）となります。スタジオの外はビルの共用部につき廊下などでの待機はできません。\n② ご予約いただいた代表者様は必ず開始に合わせてお越しください。代理の方へのご利用案内は致しません。（代表者様が遅れる場合は事前にご相談ください）\n③ ご利用時間内での清掃、現状復帰、完全退室をお願いします。終了時間が過ぎても退出ができない場合、別途延長料金が発生します。（通常料金の30%増）\n④ 延長や有料機材など当日のお支払いが発生した場合は、現金でのお支払いとなります。（法人の方はご請求書も可）\n\nその他、ご利用については、事前にウェブサイトより利用規約をご確認ください。\nhttps://tokyo.hakouma.jp/terms-of-service/',
+            contact: 'メール：contact@selfstudio.tokyo\n電話：06-6940-6761（運営会社：BALUE株式会社／営業時間：平日 9:30〜18:30）'
+        }
+    };
+    // 拠点によって自動計算される項目（入力欄は生成しない）
+    const LOCATION_COMPUTED_KEYS = ['拠点到着案内', '拠点住所', '拠点入館案内', '拠点注意事項', '拠点問い合わせ'];
+
+    function getLocationValues(loc) {
+        const l = LOCATIONS[loc] || LOCATIONS['大阪'];
+        return {
+            '拠点到着案内': l.arrival,
+            '拠点住所': l.address,
+            '拠点入館案内': l.entry,
+            '拠点注意事項': l.notes,
+            '拠点問い合わせ': l.contact
+        };
+    }
+
     // Markdown ファイルからテンプレートを読み込む
     fetch('data/template_list.json')
         .then(response => response.json())
@@ -79,7 +110,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function generateInputs(template) {
         dynamicInputs.innerHTML = '';
-        const placeholders = extractPlaceholders(template.subject + '\n' + template.body);
+        const placeholders = extractPlaceholders(template.subject + '\n' + template.body)
+            .filter(item => !LOCATION_COMPUTED_KEYS.includes(item.key));
 
         // 既存の値はキーが一致すれば引き継ぐ
         const newDetails = {};
@@ -99,6 +131,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item.type === 'textarea') {
                 input = document.createElement('textarea');
                 input.rows = 6;
+            } else if (item.type === 'select') {
+                input = document.createElement('select');
+                item.options.forEach(opt => {
+                    const optionEl = document.createElement('option');
+                    optionEl.value = opt;
+                    optionEl.textContent = opt;
+                    input.appendChild(optionEl);
+                });
             } else {
                 input = document.createElement('input');
                 if (item.type === 'date') {
@@ -112,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             input.value = details[item.key];
 
-            if (item.type !== 'date' && item.type !== 'time') {
+            if (item.type !== 'date' && item.type !== 'time' && item.type !== 'select') {
                 input.placeholder = `${item.label}を入力`;
             }
 
@@ -120,6 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 details[item.key] = e.target.value;
                 updatePreview();
             };
+            if (item.type === 'select') {
+                input.onchange = input.oninput;
+            }
 
             field.appendChild(label);
             field.appendChild(input);
@@ -128,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function extractPlaceholders(text) {
-        // {key} / {date:key} / {time:key} / {text:key} / {key:default} にマッチ
+        // {key} / {date:key} / {time:key} / {text:key} / {select:key:opt1,opt2} / {key:default} にマッチ
         const regex = /{([^}]+)}/g;
         const matches = new Map(); // キーで重複排除
         let match;
@@ -139,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let type = 'text';
             let defaultValue = '';
             let label = rawContent;
+            let options;
 
             // 型プレフィックスの判定
             if (rawContent.startsWith('date:')) {
@@ -153,6 +197,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 複数行入力（テキストエリア）
                 type = 'textarea';
                 key = rawContent.substring(5);
+                label = key;
+            } else if (rawContent.startsWith('select:')) {
+                // プルダウン選択（例: select:拠点:大阪,東京）
+                type = 'select';
+                const rest = rawContent.substring(7);
+                const sepIdx = rest.indexOf(':');
+                key = sepIdx === -1 ? rest : rest.substring(0, sepIdx);
+                const optionsStr = sepIdx === -1 ? '' : rest.substring(sepIdx + 1);
+                options = optionsStr.split(',').map(s => s.trim()).filter(Boolean);
+                defaultValue = options[0] || '';
                 label = key;
             }
             // デフォルト値の判定（date: などのプレフィックスがない場合）
@@ -169,7 +223,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     key: key,
                     label: label,
                     type: type,
-                    defaultValue: defaultValue
+                    defaultValue: defaultValue,
+                    options: options
                 });
             }
         }
@@ -195,11 +250,14 @@ document.addEventListener('DOMContentLoaded', () => {
         let subject = currentTemplate.subject;
         let body = currentTemplate.body;
 
-        Object.keys(details).forEach(key => {
+        // 拠点（大阪／東京）の選択に応じて自動計算される項目をマージする
+        const allValues = { ...details, ...getLocationValues(details['拠点']) };
+
+        Object.keys(allValues).forEach(key => {
             // このキーに対応するプレースホルダーの全表記を置換する
             // 例: {date:利用日時} と {利用日時} はどちらも「利用日時」の値で置換
 
-            const value = details[key];
+            const value = allValues[key];
 
             // 日付文字列（datetime-local）は表示用に整形する
             let displayValue = value;
@@ -401,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!price) missing.push('ご利用料金');
         if (template.id === '02_payment_card.md') missing.push('PayPalのURL');
 
-        let message = `自動入力しました（テンプレート：${template.name}）。`;
+        let message = `自動入力しました（テンプレート：${template.name}）。拠点（大阪／東京）は自動判定できないためご確認ください。`;
         if (missing.length) {
             message += ` 未入力の項目（${missing.join('・')}）はご確認・手入力してください。`;
         }

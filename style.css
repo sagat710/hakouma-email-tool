@@ -157,7 +157,8 @@ h2 {
 }
 
 .form-field input,
-.form-field textarea {
+.form-field textarea,
+.form-field select {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid var(--border-color);
@@ -174,8 +175,14 @@ h2 {
     resize: vertical;
 }
 
+.form-field select {
+    background-color: #fff;
+    cursor: pointer;
+}
+
 .form-field input:focus,
-.form-field textarea:focus {
+.form-field textarea:focus,
+.form-field select:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
@@ -221,6 +228,10 @@ h2 {
     background-color: #F9FAFB;
     border: 1px solid var(--border-color);
     border-radius: 8px;
+}
+
+.autofill-panel[hidden] {
+    display: none;
 }
 
 .autofill-panel textarea {
