@@ -32,7 +32,21 @@
             <!-- 右カラム: 入力とプレビュー -->
             <section class="editor-area">
                 <div class="input-group">
-                    <h2>内容編集</h2>
+                    <div class="input-header">
+                        <h2>内容編集</h2>
+                        <button id="autofill-toggle" class="ghost-btn">メール本文から自動入力</button>
+                    </div>
+
+                    <div id="autofill-panel" class="autofill-panel" hidden>
+                        <textarea id="autofill-input"
+                            placeholder="予約メールの本文をここに貼り付けてください…（支払い方法・氏名・ご利用プラン・料金を自動で読み取ります）"></textarea>
+                        <div class="autofill-actions">
+                            <button id="autofill-run" class="primary-btn">この内容で自動入力</button>
+                            <button id="autofill-clear" class="ghost-btn">クリア</button>
+                        </div>
+                        <p id="autofill-msg" class="autofill-msg"></p>
+                    </div>
+
                     <div id="dynamic-inputs" class="form-grid">
                         <!-- 入力欄は JS で自動生成されます -->
                     </div>

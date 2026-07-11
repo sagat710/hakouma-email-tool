@@ -297,4 +297,115 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('ログの保存に失敗しました:', err);
         }
     }
+
+    // --- メール本文からの自動入力 ---
+    const autofillToggle = document.getElementById('autofill-toggle');
+    const autofillPanel = document.getElementById('autofill-panel');
+    const autofillInput = document.getElementById('autofill-input');
+    const autofillRun = document.getElementById('autofill-run');
+    const autofillClear = document.getElementById('autofill-clear');
+    const autofillMsg = document.getElementById('autofill-msg');
+
+    autofillToggle.addEventListener('click', () => {
+        if (autofillPanel.hasAttribute('hidden')) {
+            autofillPanel.removeAttribute('hidden');
+            autofillInput.focus();
+        } else {
+            autofillPanel.setAttribute('hidden', '');
+        }
+    });
+
+    autofillClear.addEventListener('click', () => {
+        autofillInput.value = '';
+        setAutofillMsg('', '');
+        autofillInput.focus();
+    });
+
+    autofillRun.addEventListener('click', () => {
+        const raw = autofillInput.value;
+        if (!raw.trim()) {
+            setAutofillMsg('メール本文を貼り付けてください。', 'error');
+            return;
+        }
+        const result = extractFromEmail(raw);
+        if (result.error) {
+            setAutofillMsg(result.error, 'error');
+            return;
+        }
+        // 抽出値をセットしてからテンプレートを選択（入力欄が再生成され値が反映される）
+        details = {};
+        details['宛名'] = result.atena;
+        details['予約内容'] = result.booking;
+        details['ご利用料金'] = result.price;
+        selectTemplate(result.template);
+        setAutofillMsg(result.message, 'success');
+    });
+
+    function setAutofillMsg(text, kind) {
+        autofillMsg.textContent = text;
+        autofillMsg.className = 'autofill-msg' + (kind ? ' ' + kind : '');
+    }
+
+    function extractFromEmail(text) {
+        // 支払い方法からテンプレートを判定
+        let template = null;
+        if (text.includes('銀行振込')) {
+            template = templates.find(t => t.id === '01_payment_bank.md');
+        } else if (text.includes('クレジットカード') || text.includes('PayPal')) {
+            template = templates.find(t => t.id === '02_payment_card.md');
+        }
+        if (!template) {
+            return { error: '支払い方法のキーワード（銀行振込／クレジットカード／PayPal）が見つかりませんでした。' };
+        }
+
+        // 会社・団体名
+        let company = '';
+        const companyMatch = text.match(/会社・団体名[：:]\s*(.*)/);
+        if (companyMatch) {
+            const c = companyMatch[1].trim();
+            if (c && c !== 'なし') company = c;
+        }
+
+        // 氏名（（ふりがな）は除去）
+        let name = 'ご担当者';
+        const nameMatch = text.match(/氏名[：:]\s*(.*)/);
+        if (nameMatch) {
+            const nameClean = nameMatch[1].split(/[（(]/)[0].trim();
+            if (nameClean) name = nameClean;
+        }
+
+        // 宛名（会社名 + 氏名）
+        const atena = company ? `${company}\n${name}` : name;
+
+        // ご利用料金（◎ご利用料金 以降の最初の「数字＋円」）
+        let price = '';
+        const headerKey = '◎ご利用料金';
+        const headerIdx = text.indexOf(headerKey);
+        if (headerIdx !== -1) {
+            const post = text.slice(headerIdx + headerKey.length);
+            const priceMatch = post.match(/([0-9,]+)円/);
+            if (priceMatch) price = priceMatch[1];
+        }
+
+        // 予約内容（◎ご利用プラン 〜 ◎ご利用料金 の間）
+        let booking = '';
+        const bookingMatch = text.match(/◎ご利用プラン\s*\n([\s\S]*?)\n\s*◎ご利用料金/);
+        if (bookingMatch) {
+            booking = bookingMatch[1].trim().replace(/\n\s*\n/g, '\n\n');
+        }
+
+        // 未抽出項目の案内
+        const missing = [];
+        if (name === 'ご担当者') missing.push('宛名');
+        if (!booking) missing.push('予約内容');
+        if (!price) missing.push('ご利用料金');
+        if (template.id === '02_payment_card.md') missing.push('PayPalのURL');
+
+        let message = `自動入力しました（テンプレート：${template.name}）。`;
+        if (missing.length) {
+            message += ` 未入力の項目（${missing.join('・')}）はご確認・手入力してください。`;
+        }
+
+        return { template, atena, booking, price, message };
+    }
 });
