@@ -1,2 +1,2 @@
+# ローカルCLI版 (auto_reply.py) 用の依存パッケージ
 pyperclip
-streamlit

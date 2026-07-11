@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ハコウマスタジオ メール作成支援ツール</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <h1>ハコウマスタジオ メール作成アシスタント</h1>
+            <p>テンプレートを選択して、メールを作成してください。</p>
+        </header>
+
+        <main class="main-content">
+            <!-- 左カラム: テンプレート選択 -->
+            <aside class="sidebar">
+                <h2>テンプレート一覧</h2>
+                <ul id="template-list" class="template-list">
+                    <!-- テンプレートは JS で挿入されます -->
+                </ul>
+            </aside>
+
+            <!-- 右カラム: 入力とプレビュー -->
+            <section class="editor-area">
+                <div class="input-group">
+                    <h2>内容編集</h2>
+                    <div id="dynamic-inputs" class="form-grid">
+                        <!-- 入力欄は JS で自動生成されます -->
+                    </div>
+                </div>
+
+                <div class="preview-group">
+                    <div class="preview-header">
+                        <h2>プレビュー</h2>
+                        <button id="copy-btn" class="primary-btn">クリップボードにコピー</button>
+                    </div>
+                    <div class="preview-box">
+                        <div class="preview-field">
+                            <span class="label">件名:</span>
+                            <span id="preview-subject" class="value"></span>
+                        </div>
+                        <div class="preview-field">
+                            <span class="label">本文:</span>
+                            <pre id="preview-body" class="value"></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
